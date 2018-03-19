@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+
+	<!-- 建立一个基于xml配置的事务控制 -->
+	<!-- 1.建立扫描，以后基本上都是基于注解设置bean不在以来bean标签配置 -->
+	<context:component-scan base-package="com.xiaobendan"></context:component-scan>
+	<!-- 2.引入外部文件，配置信息 -->
+	<context:property-placeholder location="classpath:config/dbconfig.properties"/>
+	<!-- 3.创建datasource -->
+	<bean id="pooledDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="user" value="${user}"></property>
+		<property name="password" value="${password}"></property>
+		<property name="driverClass" value="${driverClass}"></property>
+		<property name="jdbcUrl" value="${jdbcUrl}"></property>
+	</bean>
+	<!-- 4.配置transactionManager -->
+	<bean id="dataSourceTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<constructor-arg name="dataSource" ref="pooledDataSource"></constructor-arg>
+	</bean>
+	<!-- 5.aop设置 -->
+	<aop:config>
+		<!-- 切入点表达式 -->
+		<aop:pointcut expression="execution(* *.BookService.checkOut(..))" id="myPoint"/>
+		<!-- 切入建议者 -->
+		<aop:advisor advice-ref="myAdvice" pointcut-ref="myPoint"/>
+	</aop:config>
+	<!-- 6.配置事务建议，tx:davice配置事务的具体信息 -->
+	<tx:advice id="myAdvice" transaction-manager="dataSourceTransactionManager">
+		<!-- 配置事务属性 -->
+		<tx:attributes >
+			<!-- checkOut方法为事务方法 -->
+			<tx:method name="checkOut" propagation="REQUIRED"/>
+			<!-- 所有以get开头的方法都是事务方法，并且都是只读属性 -->
+			<tx:method name="get*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+</beans>
